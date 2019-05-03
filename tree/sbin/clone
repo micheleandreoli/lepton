@@ -1,0 +1,274 @@
+#!/bin/sh
+# clone command
+# (C) 2002, by M.Andreoli
+
+#set -x
+
+. /etc/shell.lib
+. /etc/build
+
+CLONE_VERSION=0.3
+LILO_VERSION=22		# puo' essere 21 o 22
+
+smp=/mnt/s
+
+ask()
+{
+disks=$(/bin/scan ide-hd)
+first=$(set -- $disks; echo $1)
+
+msg "Tabella partizioni in questo sistema: "
+echo $disks
+
+echo
+echo "STARTUP e' la partitione dove installiamo"
+prompt startup "$first" "Enter STARTUP partition"
+echo
+echo "BOOT e' la partitione avviabile (es: /dev/hda, /dev/fd0)"
+master=$(echo $first | sed s/[0-9]//g)
+prompt boot "$master" "Enter BOOT partition"
+
+echo
+echo "SOURCE e' la directory dove risiedono le immagini"
+echo "Normalmente e' il CDROM, quindi specifica /startup"
+prompt source "/startup" "Enter SOURCE directory"
+
+
+cat <<END
+
+MODE puo' essere "ext2" (tradizionale Linux) or "loop", 
+su grossi file loop-filesystem.
+END
+
+prompt mode "loop" "Enter Installation Mode"
+
+
+prompt id "" "Enter MACHINE_ID"
+
+}
+
+check()
+{
+if [ -z "$startup" ] || [ -z "$boot" ]
+then
+	abort "Missing something"
+fi
+
+if [ "`mount | rgrep /mnt`" ] ; then
+	abort "Please: UMOUNT /MNT! "
+fi
+
+}
+
+report()
+{
+cat <<END
+STATUS: mode=$mode, startup=$startup, boot=$boot, source=$source
+END
+Read "Press -ENTER- to continue" enter
+}
+
+format_startup()
+{
+umount ${startup} 2>/dev/null
+msg "Formatting ${startup} ..."
+mkfs.ext2  -O none -q ${startup}
+}
+
+
+mount_startup()
+{
+mkdir -p $smp
+mount ${startup} $smp || abort "mounting ${startup}"
+msg "${startup} is mounted on $smp: ok"
+}
+
+install_images()
+{
+[ -d $source/boot ] || abort "Missing $source/boot"
+msg "Copying images from $source (long wait ...)"
+cp -a $source/* $smp
+}
+
+install_kernel()
+{
+[ -d $source/boot ] || abort "Missing $source/boot"
+msg "Copying kernel and LILO from $source"
+mkdir -p $smp/boot
+cp -a $source/boot/*.b $smp/boot
+cp -a $source/boot/*.msg $smp/boot 2>/dev/null
+cp -a $source/boot/map $smp/boot 2>/dev/null
+cp -a $source/boot/linux $smp/boot
+}
+
+
+
+# create the configuration file in init/
+
+install_init()
+{
+
+case $mode in
+loop)
+	mkdir -p $smp/init
+	dest="$smp/init/conf"
+	;;
+ext2)
+	dest="$smp/etc/conf"
+	;;
+esac
+
+
+(
+cat /etc/conf | rgrep -v MACHINE_ID
+echo "# on-the-fly"
+echo "MACHINE_ID=$id"
+) > $dest 
+
+}
+
+
+copy_root()
+{
+ROOT=$smp
+
+cd /
+list=`/bin/ls | rgrep -v proc | rgrep -v mnt | rgrep -v cdrom |\
+rgrep -v startup`
+
+msg "Cloning the system to $startup (very long wait ...)"
+cp -a ${list} $ROOT
+
+cd $ROOT
+mkdir -p mnt proc root c a
+
+cd $ROOT/dev
+rm -f root
+ln -s $startup root 
+
+# remove images for ext2 installations
+
+cd $ROOT/boot
+rm -f USR.*
+
+# important !
+cd $ROOT/etc
+> mtab
+
+
+}
+
+
+
+install_lilo()
+{
+msg "Installing LILO boot loader"
+msg "Creating /dev on $startup ..."
+
+mkdir -p $smp/dev
+(
+cp -a /usr/local/loader/lilo-${LILO_VERSION}/* $smp/boot
+cp -a /dev/fd* $smp/dev
+cp -a /dev/hd* $smp/dev
+cp -a /dev/sd* $smp/dev
+cp -a /dev/ram* $smp/dev
+cp -a /dev/null /dev/zero $smp/dev
+) 2>/dev/null
+
+# creating lilo.msg
+
+cat > $smp/boot/lilo.msg <<END
+
+$SYSTEM_NAME v$VERSION (Build $BUILD) $COPYRIGHT
+Installed: [`date +%x`], Disk: [$startup]
+$COMPANY_ADDRESS 
+
+END
+
+
+lilo -V || abort "Missing LILO command"
+mkdir -p $smp/etc
+make_lilo > $smp/etc/lilo.conf
+(make_lilo | lilo-${LILO_VERSION} -r $smp -C - ) || exit 1
+
+}
+
+
+make_lilo()
+{
+case $mode in
+loop)
+append=" \
+ root=/dev/ram0 load_ramdisk=1 startup=$startup" 
+	INITRD="initrd=/boot/root.gz"
+;;
+ext2)
+	append=" root=$startup ro"
+	INITRD=""
+esac
+
+# altri parametri del kernel
+
+append="$append ide=nodma"
+
+cat <<END
+# lilo.conf, startup=$startup, boot=$boot, root=$startup   
+# M.A.
+ 
+boot=$boot
+install=/boot/boot.b
+map=/boot/map
+message=/boot/lilo.msg
+backup=/dev/null
+linear
+vga=normal
+prompt
+delay=40
+timeout=50
+$INITRD
+
+image=/boot/linux
+	label=demo
+	append="$append"
+
+image=/boot/linux
+	label=showtel
+	append="$append mode=showtel"
+END
+}
+
+
+#
+# Main
+#
+clear
+msg "Clone Utility v$CLONE_VERSION, (C) M. Andreoli 2001"
+
+if [ $# -ne 0 ]; then
+	SplitArgs $@
+else
+	ask
+fi
+
+check
+report
+format_startup
+mount_startup
+
+case $mode in
+loop)
+	install_images 
+	;;
+ext2)
+	install_kernel 
+	copy_root
+	;;
+esac
+install_init
+install_lilo
+cd / ; umount $smp
+msg "Check the filesystem ..."
+fsck.ext2 $startup
+msg "Syncing disks ..."
+sync
+msg "Done, congratulation! " 

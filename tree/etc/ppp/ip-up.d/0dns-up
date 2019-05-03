@@ -1,0 +1,57 @@
+#!/bin/sh
+. /etc/path.conf
+
+# 0dns-up by John Hasler 4 Apr 1999.  You may treat this program as if it
+# was in the public domain.
+
+# Rev. Dec 22 1999 to put dynaminc nameservers last.
+
+# 0dns-up sets up /etc/resolv.conf for the provider being connected to.  In
+# conjunction with pppd's usepeerdns option it also handles dynamic dns.
+# It expects to be passed the provider name in PPP_IPPARAM.
+
+# If pppconfig has been removed we are not supposed to do anything.
+
+
+PROVIDER="$PPP_IPPARAM"
+ETC="/etc"
+PPPRESOLV="$ETC/ppp/resolv"
+TEMPRESOLV="$ETC/resolv.conf.ppp.temp$$"
+RESOLVBAK="$ETC/resolv.conf.ppp.bak"
+RESOLVCONF="$ETC/resolv.conf"
+
+# We better not do anything if resolv.conf.bak already exists.
+
+test -f "$RESOLVBAK" && exit 0
+
+# Put the resolv.conf for this provider (if it exists) in a temp file.
+# If we are using dynamic dns it will be empty or contain any resolver
+# options the user added.  Otherwise it will be a complete resolv.conf for
+# this provider.
+
+test -f "$PPPRESOLV/$PROVIDER" && cat $PPPRESOLV/$PROVIDER > $TEMPRESOLV
+
+# USEPEERDNS, DNS1, and DNS2 are variables exported by pppd.  Do we have
+# usepeerdns and a couple of nameservers?  If so, put a couple of
+# nameserver lines in the temp file.
+
+if [ "$USEPEERDNS" ] && [ "$DNS1" ] ; then
+    echo -e "\nnameserver $DNS1" >> $TEMPRESOLV
+    if [ "$DNS2" ] ; then
+	echo -e "\nnameserver $DNS2" >> $TEMPRESOLV
+    fi
+fi
+
+# If we haven't created TEMPRESOLV by now, just exit.
+
+test -f $TEMPRESOLV || exit 0
+
+# Back up resolv.conf.
+
+cp $RESOLVCONF $RESOLVBAK
+
+# And replace it with the new resolv.conf from the temp file.
+
+mv $TEMPRESOLV $RESOLVCONF
+chmod 644 $RESOLVCONF
+exit 0

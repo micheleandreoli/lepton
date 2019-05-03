@@ -1,0 +1,17 @@
+#!/bin/sh
+
+LIST="it de fr ru uk us es nl pl jp106 br"
+
+dest=/tmp/kmap
+mkdir -p $dest 
+
+for m in $LIST
+do
+echo "converting $m ..."
+loadkeys $m
+./dumpkmap > $dest/$m.kmap
+done
+
+echo "results in $dest"
+
+loadkeys it

@@ -1,0 +1,20 @@
+# /etc/color
+# Codici di colore per la console Linux
+#
+
+RED="\033[31m"    	# red
+GREEN="\033[32m"    	# green
+YELLOW="\033[33m"    	# green
+BLUE="\033[34m"    	# blue
+MAGENTA="\033[35m"	# magenta
+CYAN="\033[36m"		# cyan
+WHITE="\033[37m"	#  white
+
+BRIGHT="\033[01m"    	# bright
+NORMAL="\033[0m"     	# normal
+BLINK="\033[05m"   	# blink
+REVERSE="\033[07m"    	# reverse
+
+BLUE_BACKGROUND="\033[44m"    	# blue
+
+export RED GREEN BLUE YELLOW MAGENTA CYAN WHITE BRIGHT NORMAL BLINK REVERSE 

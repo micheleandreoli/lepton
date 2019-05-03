@@ -1,0 +1,108 @@
+#!/bin/sh
+# networking scripts
+
+. /etc/conf
+. /etc/shell.lib
+
+#set -x
+
+kernel=`uname -r`
+hostname ${HOSTNAME}
+INTERFACE=eth0
+
+
+network_probe()
+{
+msg "Scanning for network cards ..."; sleep 1
+r=$(cat /proc/pci | grep -i ethernet)
+
+case $r in
+*3c905*)	ETH=3c59x;;
+*RTL-8139*)	ETH="mii 8139too";;
+*)		ETH="";;
+esac
+
+}
+
+
+
+network_check()
+{
+ifconfig | grep eth0 > /dev/null
+[ $? -eq 0 ] && wave -c 440 1 && wave -c 880 2
+}
+
+
+network_files()
+{
+# /etc/hosts
+cp /etc/hosts /etc/hosts.tmp
+(
+echo "$IPADDR $HOSTNAME"
+cat /etc/hosts.tmp | grep -v $IPADDR
+) > /etc/hosts
+
+if [ "$NAMESERVER" ] ; then
+	echo "nameserver $NAMESERVER" > /etc/resolv.conf
+fi
+
+
+}
+
+
+start()
+{
+# loopack
+
+if [ "$DOMAIN"  ] ; then
+        echo "$DOMAIN" > /proc/sys/kernel/domainname
+fi
+
+# loopack
+ifconfig lo 127.0.0.1 up
+route add -net 127.0.0.0 netmask 255.255.255.0 lo
+
+# ethernet
+[ "$ETH" = probe ] && network_probe
+[ -z "$ETH" ] && return 1
+
+
+echo $ETH > /var/run/eth
+
+for m in $ETH; do
+modprobe $m 2>/dev/null || return 1 
+done
+
+
+NETWORK=$(ip_network $IPADDR $NETMASK)
+BROADCAST=$(ip_broadcast $IPADDR $NETMASK)
+
+ifconfig $INTERFACE ${IPADDR} netmask ${NETMASK} broadcast ${BROADCAST} up
+route add -net ${NETWORK} netmask ${NETMASK} $INTERFACE
+
+network_files
+
+msg "Starting networking: ipaddr($IPADDR), driver($ETH) ..."
+
+network_check
+}
+
+stop()
+{
+msg "Stopping networking ..."
+(
+ifconfig $INTERFACE down
+ifconfig lo down
+rmmod $ETH
+rmmod $(cat /var/run/eth)
+) 2>/dev/null
+kill -9 `pidof inetd` 2>/dev/null
+}
+
+# MAIN
+
+eval ${1:-start}
+
+
+
+

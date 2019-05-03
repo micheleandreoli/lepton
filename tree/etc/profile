@@ -1,0 +1,50 @@
+. /etc/path.conf
+
+TERM=linux
+PS1="eh?> "
+PS2='eeeh?> '
+ignoreeof=10
+
+umask 022
+
+
+. /etc/shell.lib
+
+export PATH TERM PS1 PS2 ignoreeof
+
+# Environment settings
+
+. /etc/color
+
+
+# ls() diversion
+
+ls()
+{
+/bin/ls -F "$@"
+}
+
+# only if running BASH
+if [ "$BASH" ]; then
+  export PS1='\u@\h:\w\$ '
+
+else
+cd()
+{   
+command cd "$@" && export PS1="`pwd`# "
+}
+
+cd
+
+fi
+
+
+
+# fortune game
+
+#if [ "`which fortune`" ] ; then
+#	fortune
+#fi
+
+
+# On-the-fly setting

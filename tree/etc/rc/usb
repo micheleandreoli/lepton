@@ -1,0 +1,59 @@
+#!/bin/sh
+# /etc/rc/usb
+
+. /etc/shell.lib
+. /etc/conf
+. /etc/conf.probe 2>/dev/null
+
+#set -x
+
+scan_bus()
+{
+cat /proc/bus/usb/devices | grep Product
+}
+
+usb_probe()
+{
+for USB_HOST in usb-uhci usb-ohci; do
+	modprobe $USB_HOST > /dev/null 2>&1 && return 0 
+done
+return 1
+}
+
+# MAIN
+
+op=${1:-restart}
+
+
+case "$op" in
+    start)
+	msg "Checking USB devices ..."
+	echo none > /var/run/usb-host
+	usb_probe && echo $USB_HOST > /var/run/usb-host
+	msg "Loading USB drivers ($USB_HOST) ..."
+	modprobe printer
+	mount none /proc/bus/usb -t usbdevfs 2>/dev/null 1>/dev/null
+	sleep 1
+	scan_bus
+	;;
+    debug)
+	;;
+    stop)
+	USB_HOST=`cat /var/run/usb-host 2>/dev/null`
+	msg "Stopping USB ($USB_HOST) ..."
+	rmmod printer
+	rmmod ${USB_HOST} 2>/dev/null
+	umount /proc/bus/usb 2>/dev/null
+	;;
+    restart)
+        $0 stop
+        $0 start
+	;;
+    *)
+	echo "Usage: $0 {start|stop|restart|debug}"
+	exit 1
+	;;
+esac
+
+exit 0
+

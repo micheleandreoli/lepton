@@ -1,0 +1,6 @@
+#/bin/sh
+# Corso Unix di base
+
+
+export HELP_DIR=/usr/doc/corso-unix
+exec help 

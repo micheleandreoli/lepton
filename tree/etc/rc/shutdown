@@ -1,0 +1,88 @@
+#!/bin/sh
+#
+#    Shutdown the system ( M. Andreoli) 
+#
+
+# Set the path.
+
+. /etc/path.conf
+. /etc/shell.lib
+. /etc/build
+
+clear
+
+if [ "`which stty`" ] ; then
+	stty onlcr 2>/dev/null
+fi
+
+clear > /dev/tty1
+
+# show shutdown logo
+
+(
+if [ "$(cat /proc/fb 2>/dev/null)" ] ; then
+	j2 /usr/misc/penguin.jpg | fbppm -cd -
+	j2 /usr/misc/penguin.jpg | fbppm -r -s 3 - &
+fi
+) 1>/dev/null 2>/dev/null
+
+echo  "$SYSTEM_NAME, Release $VERSION: System shutdown in progress"
+uptime
+sleep 1
+
+case $0 in
+*reboot)
+command="reboot"
+message="Please, stand by while rebooting the system ..."
+;;
+*halt)
+command="halt"
+[ "`which poweroff`" ] && command="poweroff"
+message="Please, stand by while halting the system ..."
+;;
+esac
+
+echo "Syncing disks ..."
+sync
+sleep 1
+
+# stop services
+
+runlevel=`cat /var/run/runlevel 2>/dev/null`
+runlevel=${runlevel:-2}
+/etc/rc/run $runlevel stop
+
+echo "Sending all processes the TERM signal..."
+killall5 -15 
+sleep 2 
+echo "Sending all processes the KILL signal.."
+killall5 -9 
+
+kill -9 `pidof update` 2>/dev/null
+
+# Write to wtmp file before unmounting /var
+/bin/halt -w
+
+
+echo -n "Unmounting file systems ..."
+mount | grep -v "/dev/ram" | grep -v "/proc" | grep -v " / " |\
+while read line; do
+    set -- $line ; mp=$3
+    echo -n " $mp"
+    [ "`which fuser`" ] && fuser -k -m $mp 2>/dev/null
+    umount  $mp
+    sleep 1
+done
+echo
+
+# Now halt or reboot.
+
+echo "$message"
+mount -n -o remount,ro / 2>/dev/null
+sleep 1
+echo "BYE,BYE! "
+echo
+eval /bin/$command -d -i -f
+
+
+# End

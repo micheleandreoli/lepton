@@ -1,0 +1,132 @@
+#!/bin/sh
+# filemanager plug-in 
+# (C) Michele Andreoli for muLinux
+
+. /etc/color
+
+#set -x
+
+if [ "$DISPLAY" ] ; then
+	XTERM="do_xterm"
+else
+	XTERM="exec"
+fi
+
+# functions
+
+do_xterm()
+{
+xt $@ &
+}
+
+
+interrupt()
+{
+if [ "Z$1" = "Z-t" ] ; then
+	shift
+	title="$1" ; shift
+else
+	title="$@"
+fi
+
+CMD=/tmp/cmd$$
+
+cat > $CMD <<END
+echo -e "${BRIGHT}$@${NORMAL}"
+echo -e "${BRIGHT}${GREEN}Close the window to interrupt${NORMAL}"
+eval $@ 2>/dev/null
+rc=\$?
+echo \$? > /tmp/rc
+[ \$rc -ne 0 ] && (echo ERROR; sleep 2)
+END
+
+chmod +x $CMD
+
+if [ "$DISPLAY" ] ; then
+	#xterm -geometry 50x3 -T "$@" -e $CMD
+	xterm -geometry 50x3 -T "$title"  -e $CMD
+else
+	eval $CMD
+fi
+
+rc=`cat /tmp/rc 2>/dev/null`; [ -z "$rc" ] && rc=0
+rm -f $CMD
+return $rc 
+}
+
+speaker_setup()
+{
+wave 4 1 2>/dev/null && return 0 # device is OK
+[ -z "`lsmod | rgrep pcsnd`" ] && setup -m misc/pcsnd
+cd /dev
+ln -f -s pcsp dsp
+}
+
+PLAY_WAV()
+{
+speaker_setup
+interrupt -t 'Rustic WAV player' vplay -w $1 2>/dev/null && exit
+}
+
+PLAY_MP3()
+{
+speaker_setup
+interrupt -t 'Rustic MP3 player' mpg123 $1 2>/dev/null && exit
+}
+
+# The main switch
+
+trap exit 2
+
+
+case $1 in
+*.html|*.htm)
+	exec browser file://$1
+	;;
+*.tgz|*.tar.gz)
+
+	cat $1 | gzip -dc| tar -tf- 2>&1 > /tmp/xo
+	$XTERM muless -t "Archive contents: $1" -b "[q]quit" /tmp/xo
+	;;
+*.gz)
+	gzip -dvt $1 2>&1 > /tmp/xo
+	$XTERM muless -t "Archive contents: $1" -b "[q]quit" /tmp/xo
+        ;;
+*.bz2)
+	bzip2 -dvt $1 2>&1 > /tmp/xo 
+	$XTERM muless -t "Archive contents: $1" -b "[q]quit" /tmp/xo
+        ;;
+*.tar.bz2|*.tbz)
+	bzip2 -ds $1| tar -tf 2>&1 > /tmp/xo
+        muless -t "Archive contents: $1" -b "stop :))  [q]quit"
+	$XTERM muless -t "Archive contents: $1" -b "[q]quit" /tmp/xo
+        ;;
+*.jpg|*.gif|*.bmp|*.xbm|*.png)
+	exec xli $1 2>/dev/null &
+	;;
+*.xpm)
+	exec xv $1 &
+	;;
+*.dvi)
+	exec xdvi $1 &
+	;;
+*.pdf)
+	exec xpdf $1 &
+	;;
+*.ps|*.eps)
+	exec gv $1 &
+	;;
+*.mp3)
+	PLAY_MP3 $1 
+	;;
+*.wav)
+	PLAY_WAV $1 
+	;;
+*)
+	$XTERM muless -b "[q]uit viewer" -t "File: $1" $1
+	;;
+esac
+
+rm /tmp/xo 2>/dev/null
+
+# End

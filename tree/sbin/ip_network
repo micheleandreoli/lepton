@@ -1,0 +1,28 @@
+#!/usr/bin/muawk
+# ip_network:   ip netmask -> network 
+# (C) 2001, m. Andreoli for MuLinux
+
+
+BEGIN	{
+	n=split(arg,opts)	
+
+	#------------
+	# syntax
+	#-------------
+
+	if ( opts[1] == "-h" || n==0 ) {
+		printf("Usage: ip_network ipaddr netmask \n");
+		exit
+	}
+	split(opts[1],ip,"\."); 
+	split(opts[2],netmask,"\."); 
+
+	OFS="A";
+	for ( x in netmask ) {
+		if ( netmask[x] == 255 ) printf("%d", ip[x]); 
+			else printf("%d", 0);
+		if ( x != 4 ) printf("%c",".");	
+	}
+
+
+	}

@@ -1,0 +1,31 @@
+#!/bin/sh
+# create /dev/cdrom link 
+
+. /etc/shell.lib
+
+
+start()
+{
+CDROM_DEVICE=`/sbin/scan ide-cdrom`
+
+msg "Detect CDROM: $CDROM_DEVICE"
+
+umount /cdrom 2>/dev/null
+rm /dev/cdrom 2>/dev/null
+ln -s ${CDROM_DEVICE} /dev/cdrom 2>/dev/null
+
+# load iso modules (if present)
+modprobe inflate_fs
+modprobe isofs
+}
+
+stop()
+{
+rmmod isofs
+rmmod inflate_fs
+}
+
+
+eval ${1:-start}
+
+# End

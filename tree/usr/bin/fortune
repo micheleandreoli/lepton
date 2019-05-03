@@ -1,0 +1,35 @@
+#!/bin/ash
+# fortune for muLinux (by M. Andreoli)
+# [ use expr,sed,tr,cat ]
+#set -x
+
+TR=tr
+SED=sed
+EXPR=expr
+FORTUNE_DB=/usr/games/lib/fortune.db
+
+# extract TOT 
+
+read line < $FORTUNE_DB
+eval $line
+
+# pseudo random number
+
+if [ -r /proc/uptime ] ; then
+set -- `cat /proc/uptime`
+else
+	exit 1
+fi
+
+s=`$EXPR $1 % $TOT`
+
+# extract fortune
+
+e=`$EXPR $s + 1`
+
+cat $FORTUNE_DB |\
+$TR '\012' '\001'|\
+$SED s/.*%$s%//|\
+$SED s/%$e%.*//|\
+$TR '\001' '\012'
+echo

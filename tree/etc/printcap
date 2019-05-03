@@ -1,0 +1,71 @@
+# BSD /etc/printcap for ELinux
+# (C) 1999 M. Andreoli
+
+laserjet|lp:\
+	:lp=/dev/lp:\
+	:sd=/home/lp/laserjet:\
+	:lf=/home/lp/log:\
+	:af=/home/lp/laserjet/acct:\
+	:if=/usr/lpd/unifilter:\
+	:mx#0:\
+	:sh:
+
+postscript:\
+        :lp=/dev/lp:\
+        :sd=/home/lp/postscript:\
+        :lf=/home/lp/log:\
+        :af=/home/lp/postscript/acct:\
+        :if=/usr/lpd/unifilter:\
+        :mx#0:\
+        :sh:
+
+ascii:\
+        :lp=/dev/lp:\
+        :sd=/home/lp/ascii:\
+        :lf=/home/lp/log:\
+        :af=/home/lp/ascii/acct:\
+        :if=/usr/lpd/unifilter:\
+        :mx#0:\
+        :sh:
+
+
+debug:\
+        :lp=/dev/null:\
+        :sd=/home/lp/debug:\
+        :lf=/home/lp/log:\
+        :af=/home/lp/debug/acct:\
+        :if=/usr/lpd/unifilter:\
+        :mx#0:\
+        :sh:
+
+# direct printing on LPT1:
+
+raw0:\
+        :lp=/dev/lp0:\
+        :sd=/home/lp/raw0:\
+        :lf=/home/lp/log:\
+        :af=/home/lp/raw0/acct:\
+        :if=/usr/lpd/unifilter:\
+        :mx#0:\
+        :sh:
+
+# direct printing on LPT2:
+
+raw1:\
+        :lp=/dev/lp1:\
+        :sd=/home/lp/raw1:\
+        :lf=/home/lp/log:\
+        :af=/home/lp/raw1/acct:\
+        :if=/usr/lpd/unifilter:\
+        :mx#0:\
+        :sh:
+
+fax:\
+        :lp=/dev/null:\
+        :sd=/home/lp/fax:\
+        :lf=/home/lp/log:\
+        :af=/home/lp/fax/acct:\
+        :if=/usr/lpd/unifilter:\
+        :mx#0:\
+        :sh:
+

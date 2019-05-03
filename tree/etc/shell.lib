@@ -1,0 +1,146 @@
+###################################
+# SHELL library 
+# (C) M. Andreoli
+###################################
+
+# syslog facility
+
+debug()
+{
+logger -s -t DEBUG $@
+}
+
+warn()
+{
+logger -s -t WARN $@
+}
+
+
+# workaround: simulate ash read -p
+
+abort()
+{
+echo -e "${RED}Abort:$@$NORMAL"
+Read "press -ENTER-" enter
+exit 1
+}
+
+timestamp()
+{
+date +"%H%M-%d%m%Y-$$"
+}
+
+Read()
+{
+echo "$1" | tr -d '\012'
+read $2
+}
+
+#
+# usage :  prompt var default message
+#
+prompt()
+{
+
+var=$1
+default=$2
+shift 2 2>/dev/null
+
+message="$*"
+
+if [ ! -z "${message}" ]
+then
+        message="${message} "
+else
+        message="Enter ${var} "
+fi
+
+Read "${message}[$default]> " answer
+
+if [ "${answer}" ]
+then
+        eval export ${var}=\"${answer}\"
+else
+        eval export ${var}=\"${default}\"
+fi
+}
+
+
+# print partition
+
+print_partition()
+{
+PAR=`fdisk -l 2>/dev/null | rgrep /dev | rgrep -v Disk| sed 's/\*/a/g'`
+echo
+echo "This is the partition table of your system:"
+echo -e "$BRIGHT"
+echo "   Device Boot   Begin    START      End   Blocks   Id  System"
+echo -e "$PAR" 
+echo -e "$NORMAL"
+}
+
+
+# syntax:    Array a,b,c,... n
+# return n-th value of the list
+# without n, return array size
+
+Array()
+{
+array=$1; n=$2
+
+save=$IFS; IFS=","
+set -- $array
+
+if [ -z "$n" ]; then
+	echo $#
+else 
+	eval echo \$$n
+fi
+}
+
+#----------------------
+# parse a cmdline
+#---------------------
+# Syntax
+#	SplitArgs x=1,2 y=a z
+# In this case, put in environment z=true
+# (C) M. Andreoli 2000
+
+SplitArgs()
+{
+ CMDLINE="$@"
+  for Parameter in $CMDLINE; do
+      Parameter=$( IFS='='; echo ${Parameter} )
+          set -- $Parameter; var=$1; val=$2
+	  var=$1; val=$2
+	  [ -z "$val" ] && val=true 
+	  eval $var='$(echo $val)'
+  done
+}
+
+# usage: M4 xyz -Dx=y ....
+# or     M4 xyz  `macro`
+# Output: the /etc/m4/xyz.m4 is expanded 
+
+M4()
+{
+f=$1
+shift
+
+[ ! -f /etc/m4/$f.m4 ] && abort "opening $f.m4"
+eval m4 $* -P /etc/m4/lib.m4 /etc/m4/$f.m4
+}
+
+# Outputs pattern of this form: 
+# 		-D_X_={A} ... for M4.
+# Usage: `macro X Y Z ...` 
+
+macro()
+{
+for v in $@ ; do
+eval value=\$$v
+echo  -D_${v}_={\"$value\"}
+done
+}
+
+# End

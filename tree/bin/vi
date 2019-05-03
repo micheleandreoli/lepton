@@ -1,0 +1,26 @@
+#!/bin/sh
+# editor wrapper
+# MA
+
+. /etc/conf
+. /etc/path.conf
+
+if [ -z "$EDITOR" ] ; then
+	if [ "`which vim`" ] ; then
+			# I'v vim in an high-order add-on
+			EDITOR=`which vim`
+	#elif [ "`which elvis`" ] ; then
+	#		EDITOR=`which elvis`
+	else
+			EDITOR=e3vi
+	fi
+fi
+
+# I wish to use vim, if available
+
+if [ "`which vim`" ] ; then
+	EDITOR=`which vim`
+fi
+
+
+exec $EDITOR $@

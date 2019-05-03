@@ -1,0 +1,34 @@
+#!/bin/sh
+# gpm mouse server 
+
+. /etc/color
+. /etc/build
+. /etc/conf
+
+# functions
+
+create_tmp_ramdisk()
+{
+[ -f /etc/ramdisk.gz ] || return 1
+msg "Creating temporary workarea under /tmp ...."
+gzip -dc /etc/ramdisk.gz > /dev/ram1
+mount /dev/ram1 /tmp
+}
+
+start()
+{
+set -- $(df | grep / )
+
+case $1 in
+/dev/rd*| /dev/ram*) create_tmp_ramdisk;;
+esac
+}
+
+stop()
+{
+}
+
+# Main
+
+op=${1:-start}
+eval $op

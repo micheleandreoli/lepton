@@ -1,0 +1,41 @@
+#!/bin/ash
+# /bin/login wrapper+diversion
+# by M. Andreoli
+
+#set -x
+
+USER=root
+
+# rustic authentication
+
+auth()
+{
+while [ 1 ]; do
+[ "`which stty`" ] && stty -echo
+read -p "password: " password
+[ "`which stty`" ] && stty echo
+chkpasswd "$USER" "$password" && break
+done
+
+}
+
+# Main
+
+if [ -x /root/bin/login ] ; then
+	LOGIN=/root/bin/login
+else
+	LOGIN="-ash -si"
+fi
+
+
+
+if [ -x /usr/bin/ile ] &&  [ -r /etc/history.conf ]; then
+	HISTORY="/usr/bin/ile -/etc/ilerc"
+else
+	HISTORY=
+fi
+
+
+export TERM=linux
+export HOME=/root
+eval exec $HISTORY $LOGIN $@

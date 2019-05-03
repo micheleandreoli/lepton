@@ -1,0 +1,16 @@
+#!/bin/sh
+# rustic framebuffer screen saver demo
+# (C) 2002 M.Andreoli
+
+. /etc/conf
+. /etc/path.conf
+
+
+[ -z "$(cat /proc/fb 2>/dev/null)" ] && exit
+[ -z "$(which j2)" ] && exit
+[ -z "$(which fbppm)" ] && exit
+
+(
+j2 /usr/misc/remo.jpg |\
+ fbppm -c -t ${SCREENSAVER_TIMEOUT:-120} -
+) 1>/dev/null 2>&1

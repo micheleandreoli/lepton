@@ -1,0 +1,505 @@
+#!/bin/ash
+# Rustic File Manager 
+# by M. Andreoli 1999
+
+. /etc/dialog.lib
+. /etc/conf
+
+#set -x
+
+#-----------------
+# local variables
+#-----------------
+
+menu1="[1]:  [123] menus | [c]d | [d]elete | [C]opy | [e]dit |[q]uit | [h]elp\
+    PION v0.2, Filemanager"
+menu2="[2]:  [m]kdir | [p]rint | [f]ile type| he[x] edit | "
+menu3="[3]:   -- in progress --"
+Name="PION: muLinux File Manager"
+
+
+supported()
+{
+cat <<END
+Pion supports the following file extensions:
+
+	.gz .tgz .bz2 .tbz 
+	.html .ps .pdf .dvi .eps 
+	.gif .jpg *.png, *.xbm .xpm
+	.mp3 .wav
+
+The viewer is activated pressing -enter-
+END
+}
+
+#--------------------
+# LOCAL FUNCTIONS 
+#--------------------
+
+Help()
+{
+
+cat <<END
+
+       _             
+ _ __ (_) ___  _ __  
+| '_ \| |/ _ \| '_ \ 
+| |_) | | (_) | | | |   A File Manager for Mulinux
+| .__/|_|\___/|_| |_|   with rustic VFS (ftp, etc)	
+|_|                            (C) M.Andreoli, Italy 
+
+Generic Infos
+---------------
+
+-ENTER-         select items 
+
+1,2, ...        select new submenus
+
+$(supported)
+
+
+	Please, use full-path in directories names.
+
+
+FTP  (rustic) "Virtual File System" :
+-------------------------------------
+(Experimental)
+
+	Pion use a sort of "connection-less" ftp client,
+	/usr/bin/ftpget: ONE activity, ONE connection.
+	
+	Use "c)d" for directly  change your current directory 
+	to remote ftp directory. URL syntax:
+
+       	      ftp://[user[:pass]@]machine/[remote-dir/]
+
+       	The user and remote-dir elements are optional: in this case,
+	Pion use user=anonymous. You MUST end with /, for a dir. 
+
+	Ex:
+
+		ftp://bettino:craxi@ftp.sanvittore.it/mensa/
+
+	Use "C)opy" for download & upload to/from URLs. Destination
+	must be a file.
+	
+	FTP VFS support all main commands which you can use in
+	local, with "editing commands" exceptions. You can return
+	back to local file system, using a new local directory. 
+
+
+
+END
+
+}
+#---------------------------
+# Save the local environment
+#---------------------------
+
+Save()
+{
+cat > $MEM <<END
+dir="$dir"
+menu="$menu"
+opt="$opt"
+VFS=$VFS
+TMP=$TMP
+# ftp
+host=$host
+user=$user
+password=${password}
+END
+}
+
+
+# url parsing
+
+parse_url()
+{
+URL=$1
+
+	save=$IFS
+	IFS="/"
+	set -- $URL
+	auth=$3; 
+	IFS=$save
+	path=`echo $URL| sed "s/ftp:..$auth//g"`
+
+	IFS="@"
+	set -- $auth
+	if [ $# -eq 1 ]; then
+		host=$1; user=anonymous; password=a@b.it
+	else
+		host=$2; user=$1
+		IFS=":"
+		set -- $user
+		user=$1; password=
+		if [ $# -eq 2 ]; then
+			 password=$1; user=$2 
+		fi
+	fi
+	IFS=$save
+
+case "$path" in
+*/)	dir="$path";;
+*)	dir=`dirname $path`;;
+esac
+
+if [ "$path" ] ; then
+	filename=`basename $path`
+else
+	filename=
+fi
+}
+
+# prep dir screen
+
+prep0()
+{
+sed -n "/^total [0-9]/!P" |\
+sed 's/^d\(.*\)/d\1\//' |\
+sed -n "/ \.\//!P" 
+}
+
+prep()
+{
+sed 1d
+}
+
+
+#######################
+# Virtual File System
+#######################
+
+# get $1 in $2
+
+get()
+{
+case $VFS in
+local)  
+	cp $1 $2
+        ;;
+ftp)
+	echo "Getting $1 ... "
+         ftpget -h $host \
+        -u $user -p ${password} -d "$dir" -f $1 2>/dev/null 1> $2
+        [ $? -ne 0 ] && (echo -n "FTP error."; sleep 2)
+        ;;
+esac
+
+}
+
+
+
+# change dir
+
+CD()
+{
+case $1 in
+ftp:*)	
+	VFS=ftp
+	parse_url $1
+	;;
+*/)	VFS=local
+	;;
+*)
+	VFS=local
+	dir="$1/"
+	;;
+esac
+Save
+}
+
+MKDIR()
+{
+case $VFS in
+local)	mkdir $1
+	;;
+ftp)
+	 ftpget -h $host \
+        -u $user -p ${password} -d "$dir" -c "MKD $1" 2>/dev/null 1>&2
+	[ $? -ne 0 ] && (echo -n "FTP error."; sleep 2)
+	;;
+esac
+}
+
+RM()
+{
+case $VFS in
+local)  rm -f $1
+        ;;
+ftp)
+         ftpget -h $host \
+        -u $user -p ${password} -d "$dir" -c "DELE $1" 2>/dev/null 1>&2
+	[ $? -ne 0 ] && (echo -n "FTP error."; sleep 2)
+        ;;
+esac
+}
+
+RMDIR()
+{
+case $VFS in
+local)  rm -r $1
+        ;;
+ftp)
+         ftpget -h $host \
+        -u $user -p ${password} -d "$dir" -c "RMD $1" 2>/dev/null 1>&2
+	[ $? -ne 0 ] && (echo -n "FTP error."; sleep 2)
+        ;;
+esac
+}
+
+CP()
+{
+source=$1; dest=$2
+d=`basename $dest`
+
+get ${source} $TMP/$d
+
+case $dest in
+ftp:*)
+	parse_url $dest
+	[ -z "$filename" ] && filename=$d
+         cat $TMP/$d | ftpget -v -i -h $host \
+        -u $user -p ${password} -d "$dir" -f "$filename" 1>/dev/null 2>&1 
+        [ $? -ne 0 ] && (echo -n "FTP error."; sleep 2)
+        ;;
+*)
+	cp $TMP/$d $dest
+	;;
+esac
+
+rm -r $TMP/$d
+}
+
+
+
+Select_local()
+{
+xopen $1
+}
+
+Select()
+{
+
+case $VFS in
+local)
+                Select_local "$1"
+	;;
+ftp)
+	f=`basename $1`
+	get $1 $TMP/$f
+	Select_local "$TMP/$f"
+	;;
+esac
+
+}
+
+#-----------------------
+# reload: $1=dir $2=mesg
+#-----------------------
+
+Reload()
+{
+
+# prepare 
+
+case "$dir" in
+/cdrom/c/a/) mount $dir 2>/dev/null
+	;;
+esac
+
+cat > $TMP/cnt <<END
+:T: ($VFS) [$dir]
+:B: $menu 
+:S: $@
+END
+
+# rebuild
+
+case $VFS in
+local)
+	/bin/ls $opt $dir | prep >> $TMP/cnt
+	;;
+
+ftp)
+	echo -n "connecting to $host ..."
+	ftpget -h $host \
+	-u $user -p ${password} -d "$dir" 2>/dev/null | prep >> $TMP/cnt
+	[ $? -ne 0 ] && (echo -n "FTP error."; sleep 2)
+	;;
+
+esac
+
+kill -10 $pid 2>/dev/null
+
+}
+
+#--------------
+# Main
+#--------------
+
+
+# initialization
+
+case $# in
+0|1)
+menu=$menu1;
+TMP=/tmp/pion$$; (cd /tmp; mkdir pion$$) 
+export MEM=/tmp/mem$$
+
+
+dmessage -t "Welcome_to_Pion! "  $(supported | quote)
+
+
+case "Z${1}Z" in
+ZZ)
+	dir="`pwd`/"
+	;;
+Z-askZ)
+	while [ 1 ] ; do
+	read -p "Enter directory to browse: " dir
+	[ -d "$dir" ] && break
+	done
+	;;
+*)
+	dir=$1
+esac
+
+
+opt="-l -a -p"    
+VFS=local
+CD $dir
+Save
+Reload "Current dir: ($VFS) $dir"
+muless -n main -e $0 $TMP/cnt
+rm -f $MEM
+rm -r $TMP
+exit
+;;
+esac
+
+#  from muless 
+
+pid=$2; name=$3
+set -- $1
+
+key=$1; row=$2; permission=$3
+shift 10 2>/dev/null ; F=$1 
+
+case $permission in
+d*) type="dir"
+    ;;
+*)
+    type="file"
+    ;;
+esac
+
+. $MEM 
+
+# main switch
+
+
+case $key in
+h)
+	Help| muless -t "Pion help" -b "[q]uit help" -s "\
+Pion -- (C) 1999 M. Andreoli, Rustic(TM) Software Foundation "
+	;;
+q)
+	exit
+	;;
+) #select
+
+
+	if [ "$type" = file ] ; then
+		Select "$dir$F"
+	else
+		case "$F" in
+       	 	"../") dir="`dirname $dir`/";;
+       		*) dir="$dir$F";;
+       		esac
+               		Save
+                	Reload "Current dir: ($VFS) $dir"
+	fi		
+	;;
+m) #mkdir
+	read -p "enter dirname: " nd
+	MKDIR "$dir$nd" 
+	Reload "a new dir $nd, in $dir"
+	;;
+d) #delete
+
+	ed=n
+	if [ "$type" = dir ] ; then
+		read -p "erase $F and ALL contents (y/n) [n]? " ed
+		[ "$ed" = y ] && RMDIR "$dir$F" \
+		&& msg="removed dir: $F"
+	else
+		RM $dir$F
+		msg="removed file: $F"
+	fi
+	Reload $msg 
+	;;
+f) #file type
+	sel=$F
+	[ "$type" = dir ] && read -p "directory - press ENTER" dummy && exit 
+	get $dir$F $TMP/$F
+	set `file $TMP/$F` ; shift
+	rm -f $TMP/$F
+	ft="$sel: $@"
+	read -p "$ft -press ENTER-" dummy
+	;;
+C) 	#copy (or download )
+	read -p "Enter destination (full path) [/tmp/$F] " dest 
+	[ -z "$dest" ] && dest=/tmp/$F
+
+	CP $dir$F ${dest}
+
+	#get $dir$F $TMP/$F
+	#cp $TMP/$F ${dest}
+	#rm -f $TMP/$F
+	;;
+c) #cd
+	read -p "new dir: " dir 
+	CD "$dir"
+	Reload "Current dir: ($VFS) $dir"
+	;;
+1) # menu 1
+	menu=$menu1
+	Save
+	Reload
+	;;
+2) # menu 2
+	menu=$menu2
+	Save
+	Reload
+	;;
+3) # menu 3 
+	menu=$menu3
+	Save
+	Reload
+	;;
+p) #print
+	get $dir$F $TMP/$F
+	(cd $F; lpr $F; rm $F)
+	sleep 2
+	;;
+e) # edit
+	if  [ $VFS = local ] ; then
+		eval ${EDITOR:-vi} $dir$F
+	else
+		read -p "only local editing - press ENTER -" dummy
+	fi
+	;;
+x) # hex edit
+        if  [ $VFS = local ] ; then
+		muhex $dir$F
+        else
+                read -p "only local editing - press ENTER -" dummy
+        fi
+        ;;
+
+R) 
+	vi $0 
+	;;
+esac

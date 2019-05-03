@@ -1,0 +1,47 @@
+#!/bin/sh
+#/etc/rc/run: the main boot script
+# Usage: run runlevel start|stop
+# (C) M. Andreoli
+
+. /etc/shell.lib
+. /etc/path.conf
+. /etc/color
+
+#set -x
+
+# args parse
+
+if [ $# = 0 ] ; then
+	echo "Usage: $0 runlevel start|stop"
+	exit
+fi
+
+runlevel=$1; op=${2:-"start"}
+
+# send kernel messages to console 4 
+
+[ "`which setconsole`" ] && setconsole 4
+
+
+# sort option (stop() acts in reverse order)
+
+case $op in
+start) order="";;
+stop) order="-r";;
+esac
+
+cd /etc/rc/$runlevel || abort "Level [$runlevel] non-existent"
+> /var/log/boot.log
+
+clear 
+for r in $(/bin/ls | sort ${order}) 
+do
+eval /etc/rc/$runlevel/$r $op >> /var/log/boot.log 2>&1
+sleep 1
+done
+
+# register current runrunlevel
+
+echo $runlevel > /var/run/runlevel
+
+# End

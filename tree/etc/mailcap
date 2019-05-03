@@ -1,0 +1,3 @@
+# /etc/mailcap per Netscape
+
+application/x-shockwave-flash;plug-in; x-mozilla-flags=plugin:Shockwave Flash

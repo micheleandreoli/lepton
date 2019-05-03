@@ -1,0 +1,48 @@
+#!/bin/sh
+# gpm mouse server 
+
+. /etc/color
+. /etc/build
+. /etc/conf
+
+# mouse device
+
+
+rm -f /dev/mouse
+ln -s $MOUSE_DEVICE /dev/mouse
+
+case $MOUSE_DEVICE in
+*psaux*) OPT="-t ps2 -r 10";;
+*ttyS*)  OPT="-t ms -r 10";;	
+esac
+
+# start server
+
+start()
+{
+
+if [ `which gpm` ] ; then
+msg "Starting gpm ($MOUSE_DEVICE) ..."
+	(
+	gpm_stop 
+	gpm -m /dev/mouse $OPT
+	) 2>/dev/null >/dev/null
+fi
+}
+
+stop()
+{
+msg "Stopping gpm ..."
+( gpm -k; killall gpm ) 2>/dev/null
+}
+
+restart()
+{
+stop; start
+}
+
+# Main
+
+eval ${1:-start}
+
+# End

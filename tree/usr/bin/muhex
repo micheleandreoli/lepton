@@ -1,0 +1,37 @@
+#!/bin/sh
+# muhex: a hexadecimal editor for mulinux
+# (C) by M. Andreoli 1999
+
+. /etc/conf 2>/dev/null
+
+#set -x
+
+filename=$1
+case "Z${filename}Z" in
+Z-hZ|ZZ) 	
+	echo "muhex: hexadecimal editor."
+	echo "USAGE: muhex [file]" 
+	echo
+	read -p "Enter filename: " filename
+	;;
+esac
+
+if [ ! -r "$filename" ] ; then
+	echo "Missing input file."
+	exit
+fi
+
+name=`basename $filename`
+
+hexd -c < $filename > /tmp/$name.$$
+eval ${EDITOR:-vi} /tmp/$name.$$
+
+read -p "Save (y/n)? [y] " save
+[ -z "$save" ] && save=y
+
+if [ "$save" = y ] ; then 
+	hexd -d < /tmp/$name.$$ > $filename
+	echo saved 
+fi
+	rm -f /tmp/$name.$$
+

@@ -1,0 +1,66 @@
+#!/bin/sh
+
+#set -x
+
+
+HELP_DIR=${HELP_DIR:-"/usr/doc/help"}
+
+
+refresh()
+{
+TITLE="$1"
+MSG="$2"
+
+cat > /tmp/help.cnt <<END 
+:T: $TITLE 
+:B: | [p]rint | [q]uit                                                  (C) 1998-2002 M.Andreoli 
+:S: $MSG
+ _____           _              
+|_   _|__  _ __ (_) ___ ___   _ 
+  | |/ _ \| '_ \| |/ __/ __| (_)
+  | | (_) | |_) | | (__\__ \  _ 
+  |_|\___/| .__/|_|\___|___/ (_)
+          |_|                   
+END
+
+/bin/ls -C ${HELP_DIR} | \
+while read line
+do
+set -- $line
+printf "%-25s %-25s %-25s" "$1" "$2" "$3" 
+echo
+done >>/tmp/help.cnt
+
+kill -10 $pid 2>/dev/null 
+}
+
+pid=$2
+set -- $1
+key=$1
+link=$3
+
+# first run
+
+if [ -z "$key" ] ; then
+refresh "\
+               Help muLinux Hypertextual System (807 bytes)\
+" "select a topic and press -ENTER-"
+muless -e $0 -x /tmp/help.cnt
+exit
+fi
+
+
+case $key in
+q)
+	rm /tmp/help.cnt
+	;;
+)
+	muless -e $0 -t "Topic: $link" -b "q) back" $HELP_DIR/$link
+	;;	
+p) #print
+	lpr $HELP_DIR/$link
+	sleep 2
+	;;	
+esac
+
+

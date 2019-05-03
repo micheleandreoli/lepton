@@ -1,0 +1,71 @@
+#!/bin/sh
+# setup swap 
+
+. /etc/shell.lib
+
+#set -x
+
+# Note
+# global vars are capitalized
+
+get_swap_signature()
+{
+dd if=$1 bs=1c skip=4086 count=10 2>/dev/null
+}
+
+# we have a disk-partition labelled Linux-swap?
+
+scan_linux_swap()
+{
+fdisk -l 2>/dev/null| grep "Linux swap" |
+while read dev rest; do
+sign=$(get_swap_signature $dev)
+
+case $sign in
+SWAP-SPACE|*SWAPSPACE*)
+	echo -n "$dev"
+	;;
+esac
+done
+echo -n ""
+}
+
+try_with_linux_swap()
+{
+DEVICE=$(scan_linux_swap)
+if [ "$DEVICE" ]; then
+	msg "Found Linux-swap signature on $DEVICE."
+	return 0
+else
+	return 1
+fi
+}
+
+start()
+{
+try_with_linux_swap || return 1 
+
+        rm -f /dev/swap; ln -s ${DEVICE} /dev/swap
+        msg "Automatic swapping on ${DEVICE} (Linux-Swap) ..."
+        mkswap /dev/swap
+        sync
+        swapon /dev/swap
+        return 0
+
+}
+
+
+stop()
+{
+cat /proc/swaps 2>/dev/null | grep -v "Filename" |\
+while read dev other;  do
+	msg "Turning off swapping on $dev ..."
+	swapoff $dev
+done	
+}
+
+# Main 
+
+eval ${1:-start}
+
+# End

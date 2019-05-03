@@ -1,0 +1,219 @@
+#!/bin/sh
+# rustic hardware probing
+# M. Andreoli
+
+#set -x
+
+# Syntax
+usage()
+{
+cat <<END
+muLinux rustic hardware probing
+(C) M. Andreoli
+
+Usage:	scan [hardware]
+
+and "hardware" is: 
+
+	mouse, modem, ide-cdrom, scsi-bus, scsi-cdrom
+	scsi-hd, ide-hd, tcp, pci
+
+Generally, return  a device's list in the form /dev/XYZ /dev/ ...
+END
+exit
+
+}
+
+opt=$1
+[ -z "$opt" ] && usage
+
+# LOCAL
+
+# usage: probe_modem /dev/x
+
+probe_modem()
+{
+dev=$1
+echo -e "ATZ" | dd of=$dev 2>/dev/null
+timeout 4 < $dev >/dev/null 
+if [ $? -ne 0 ]; then
+	# device respond
+	echo -e "ATZ" | dd of=$dev 2>/dev/null
+	dd if=$dev 2>/dev/null bs=1c count=4 | rgrep OK	>/dev/null 
+	return $?
+fi
+
+return 1
+}
+
+# Usage list_block {sd|hd| ...}
+
+list_block()
+{
+prefix=$1
+cdrom=`list_ide_cdrom`
+
+cat /proc/partitions | sed -n /$prefix[a-z][1-9][1-9]*/P |
+while [ 1 ]
+do
+read major minor blocks name
+[ -z "$major" ] && break 
+([ "$minor" -eq 0 ] || [ "$blocks" -lt 10 ] ) && continue 
+echo /dev/$name
+done
+}
+
+# usage: irq_probe {serial, ...}
+# See /proc/devices
+
+irq_probe()
+{
+what=$1
+max=8
+count=1
+
+set -- `cat /proc/interrupts | rgrep $what`
+start=$2
+
+while [ $count -lt $max ] ; do
+set -- `cat /proc/interrupts | rgrep $what`
+now=$2
+[ $now -ne $start ] && [ "$now" ] && return 0
+sleep 1
+count=`expr $count + 1`
+done
+return 1
+}
+
+log()
+{
+echo "$@" 1>&2
+}
+
+scsi_bus()
+{
+cat /proc/scsi/scsi 2>/dev/null \
+| rgrep -v "Attached devices:" |\
+while [ 1 ]
+do
+read host HOST ch CH id ID lun LUN
+[ -z "$HOST" ] && break
+
+read vendor VENDOR model MODEL rest
+read type TYPE rest
+
+echo "$MODEL ($TYPE) $CH $ID $LUN"
+
+done
+
+}
+
+list_ide_cdrom()
+{
+cd /proc/ide
+for i in hd*
+do
+media=`cat $i/media`
+case $media in
+cdrom|CDROM)	echo /dev/$i;;
+esac
+done
+
+}
+
+# MAIN
+
+case $opt in
+mouse)	# scan for mouse device
+
+log "Please, move your mouse in next 8 secs ..."
+echo  -n "Serial interrupts test:" 1>&2
+irq_probe serial
+if [ $? -eq 0 ] ; then
+        log " Ok, a serial mouse"
+else
+        log " failed."
+fi
+
+echo  -n "PS/2 interrupts test: " 2>&1
+irq_probe PS/2
+if [ $? -eq 0 ] ; then
+        log " Ok, a PS/2 mouse"
+else
+        log " failed."
+fi
+;;
+
+ide-cdrom) # probe ide cdrom
+
+	dev=`list_ide_cdrom`
+	[ -z "$dev" ] && exit 1 
+	echo $dev
+	exit 0 
+;;
+scsi-cdrom) # probe scsi cdrom
+
+	cdrom=`scsi_bus | sed -n /CD.*ROM/P` 
+	if [ "$cdrom" ] ; then
+	set -- $cdrom; id=`expr $3 + 0`
+	echo /dev/scd${id}
+	exit 0
+	fi
+	exit 1
+	;;
+
+scsi-hd) # probe scsi HD
+
+	list_block sd 
+	;;
+ide-hd) # probe IDE HD
+
+        list_block hd
+        ;;
+scsi-bus)
+	scsi_bus
+	;;
+tcp)
+	nmap localhost
+	;;
+modem)
+	#echo -n "Turn on the modem and press -ENTER - " 1>&2
+	#read enter
+	echo  "Assuming modem turned on" 1>&2
+	
+	serial="/dev/ttyS0 /dev/ttyS1 /dev/ttyS2 /dev/ttyS3"	
+	for d in ${serial} 
+	do
+	echo -n "Probing $d ... " 1>&2
+	probe_modem $d && echo "OK" 1>&2 && echo $d && break
+	echo "not responding." 1>&2
+	done
+	;;	
+pci)
+
+
+cat /proc/pci| awk '\
+BEGIN	{
+	found="no"
+	print "PCI device found:"
+	}
+
+/Bus.*,.*:/	{ found="yes"; next;}
+		{ 
+		split($0,field,":");
+		if(found=="yes") 
+			{found="no";
+			printf("%-32s: %s\n", field[1],field[2])
+			};
+
+		}
+
+END	{
+	}
+'
+	;;
+*)
+	echo "Error."
+	usage
+	;;
+esac

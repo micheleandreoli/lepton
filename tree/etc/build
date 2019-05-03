@@ -1,0 +1,9 @@
+SYSTEM_NAME="LEPTON"
+VERSION="0r5"
+FLOPPY=/dev/fd0u1722
+MODEL=1722
+BUILD="397"
+DATE="mer giu  2 20:29:25 UTC 2004"
+COMPANY_LINK="<a href=http://sunsite.auc.dk/mulinux/> muLinux </a>"
+COMPANY_ADDRESS="qua e la'"
+COPYRIGHT=""

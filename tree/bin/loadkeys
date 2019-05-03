@@ -1,0 +1,32 @@
+#!/bin/sh
+# loadkeys wrapper for mulinux
+
+
+LIB=/lib/kmap
+
+ask_keymap()
+{
+/bin/ls $LIB | sed s/.kmap//g
+
+read -p "Enter keymap: " K
+
+}
+
+
+# MAIN
+
+K=$1
+[ -z "$K" ] && ask_keymap
+
+
+map=$LIB/$K.kmap
+
+
+if [ -f $map ] ; then
+	echo "Loading  binary keymap $map"
+	cat $map | loadkmap
+else
+	echo "Cannot find keymap $map"
+fi
+
+

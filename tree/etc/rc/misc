@@ -1,0 +1,22 @@
+#!/bin/sh
+# misc setup 
+
+. /etc/color
+. /etc/build
+. /etc/path.conf
+. /etc/conf
+
+# functions
+
+start()
+{
+}
+
+stop()
+{
+}
+
+# Main
+
+op=${1:-start}
+eval $op

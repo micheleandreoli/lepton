@@ -1,0 +1,53 @@
+id:3:initdefault:
+r:S:sysinit:/etc/rc/sysinit
+l:1:once:/etc/rc/1
+b:3:wait:/etc/rc/boot
+f:4:wait:/etc/rc/full
+x:5:wait:/etc/rc/showtel
+ca:12345:ctrlaltdel:/etc/rc/6
+l0:0:wait:/etc/rc/0
+l6:6:wait:/etc/rc/6
+#a1:45:respawn:/bin/adm
+c1:4:respawn:/bin/agetty 38400 tty1
+c2:4:respawn:/bin/agetty 38400 tty2
+c3:4:respawn:/bin/agetty 38400 tty3
+c4:4:respawn:/bin/agetty 38400 tty4
+c5:5:respawn:/bin/agetty 38400 tty2
+#c6:45:respawn:/bin/agetty 38400 tty6
+#c7:45:respawn:/bin/agetty 38400 tty7
+#c8:45:respawn:/bin/agetty 38400 tty8
+
+#-----------------------
+# servers & daemons
+#-----------------------
+
+# Serial Terminale on ttyS0
+
+#s0:5:respawn:/bin/agetty 115200 ttyS0 
+
+# X Server 
+#X:5:once:/usr/X11R6/bin/startx 2>/dev/null 1>&2
+
+# Xvnc Server 
+#V:5:once:/usr/local/bin/vnc start 2>/dev/null 1>&2
+
+# at command scheduler
+#AT:5:respawn:/usr/bin/atd
+
+# http server
+#W3:5:respawn:/usr/sbin/httpd
+
+# ringd daemon 
+#R:5:respawn:/usr/bin/efax -d /dev/modem -iZ -s -w -A /etc/ring.cmd 2>/dev/null
+
+# serial line connection
+#SS:5:respawn:/usr/sbin/in.seriald
+
+# modem (Hayes) line connection
+#DS:5:respawn:/bin/agetty -w -t 120 -f /etc/issue.net -I 'ATE0Q1&D2&C1S0=1\015' 115200 ttyS1
+
+# Fax server
+#FS:5:respawn:/usr/sbin/in.faxd
+
+# Telnet server
+#T1:5:respawn:/usr/bin/nc -e /usr/sbin/in.telnetd -l -p 23 2>/dev/null

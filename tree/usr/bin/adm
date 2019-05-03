@@ -1,0 +1,214 @@
+#!/bin/sh
+# adm, muLinux Navigation system, by M. Andreoli
+#set -x
+
+
+ME=$0
+MENU="[p] print the page, [q] back"
+
+F=-15
+TAB=15
+FMT="%${TAB}s %${F}s %${F}s %${F}s %${F}s"
+FMT="%${TAB}s %${F}s"
+
+
+show_penguin()
+{
+image=/usr/misc/penguin.jpg
+[ -z "$(cat /proc/fb 2>/dev/null)" ] && return 1
+[ -r $image ] || return 1
+clear
+(
+/usr/bin/j2 ${image} | /usr/bin/fbppm -w 2 -s 2 -
+) 1>/dev/null 2>/dev/null
+
+}
+
+
+are_sure()
+{
+read -p "Are You sure (y/[n])? : " ans 
+[ -z "$ans" ] && ans=n
+
+case $ans in
+y|Y|s|S)
+	return 0 
+	;;
+*)
+	return 1 
+	;;
+esac
+}
+
+
+refresh()
+{
+TITLE="$1"
+MSG="$2"
+
+cat > /tmp/adm.cnt <<END 
+:T: $TITLE 
+:S: $MSG
+
+    _    ____  __  __ ___ _   _
+   / \  |  _ \|  \/  |_ _| \ | |
+  / _ \ | | | | |\/| || ||  \| |	System Administration Menus
+ / ___ \| |_| | |  | || || |\  |	(C) M.Andreoli, Rustic Software
+/_/   \_\____/|_|  |_|___|_| \_|
+
+
+         Please, press  ALT-F2, ALT-F3, ... for the standard LINUX consoles!
+
+
+
+END
+
+(
+printf "%10s" "Applications:" 
+echo
+
+printf "$FMT" " " "File Manager" ; echo 
+printf "$FMT" " " "Hypertextual Help" ; echo 
+printf "$FMT" " " "Hardware Info" ; echo 
+printf "$FMT" " " "System Monitor" ; echo 
+printf "$FMT" " " "MemTest (RAM chip test)" ; echo 
+
+printf "%10s" "Utilities:"; echo
+printf "$FMT" " " "Disk Info" ; echo 
+printf "$FMT" " " "fdisk utility" ; echo 
+printf "$FMT" " " "Diskcopy (1722k)" ; echo 
+printf "$FMT" " " "Diskcopy (1440k)" ; echo 
+printf "$FMT" " " "DiskFormat (1440k)" ; echo 
+printf "$FMT" " " "DiskFormat (1722k)" ; echo 
+
+printf "%10s" "Configuration:"
+echo
+printf "$FMT" " " "Change keymap" ; echo 
+
+printf "%10s" "System:"
+echo
+
+printf "$FMT" " " "Load a patch-floppy" ; echo 
+printf "$FMT" " " "System Halt" ; echo 
+printf "$FMT" " " "System Reboot" ; echo 
+
+) >> /tmp/adm.cnt
+
+
+
+kill -10 $pid 2>/dev/null 
+}
+
+process()
+{
+what="$@"
+case "$what" in
+log)	dmesg > /tmp/adm.p 
+	;;
+*File*Manager*)
+	pion /
+	;;
+*Help*)
+	/usr/bin/help	
+	;;
+*Hardware*Info)
+	/usr/bin/info	
+	;;
+*System*Monitor*)
+	/usr/bin/mon	
+	;;
+*Halt*)
+	are_sure && init 0
+	;;
+*Reboot*)
+	are_sure && init 6	
+	;;
+*Load*patch*)
+	upgrade
+	;;
+*Diskcopy*1722*)
+	clear
+	diskcopy 1722
+	sleep 1
+	;;
+*Diskcopy*1440*)
+	clear
+	diskcopy 1440
+	sleep 1
+	;;
+*keymap*)
+	clear
+	loadkeys
+	sleep 1
+	;;
+*MemTest*)
+	clear
+	/etc/rc/memtest.sh
+	sleep 1
+	;;
+*Disk*Info*)
+	clear
+	fdisk -l
+	echo -n "press ENTER "; read enter
+	;;
+*fdisk*)
+	clear
+	fdisk /dev/hda 
+	;;
+*DiskFormat*1440*)
+	clear
+	echo -n "put the floppy in the drive and press ENTER "; read enter
+	fdformat /dev/fd0u1440
+	;;
+*DiskFormat*1722*)
+	clear
+	echo -n "put the floppy in the drive and press ENTER "; read enter
+	fdformat /dev/fd0u1722
+	;;
+esac
+
+#muless -e $ME -t "adm: $what" -b "$MENU" /tmp/adm.p
+
+}
+
+
+#--------------
+# MAIN
+#--------------
+
+pid=$2
+set -- $1
+key=$1
+shift
+link="$@"
+
+# first run
+
+if [ -z "$key" ] ; then
+
+show_penguin
+
+refresh "\
+                          Adm: Navigation System v0.1       $(date)\
+"
+muless -e $ME -b "\
+[q]uit                         (C)2002 Michele Andreoli, Rustic Software Foundation, Inc.\
+" -x /tmp/adm.cnt
+exit
+fi
+
+
+case $key in
+q)
+	rm -f /tmp/adm.cnt /tmp/adm.p
+	;;
+)
+	process "$link"
+	;;	
+p) #print
+	lpr /tmp/adm.p
+	sleep 2
+	;;	
+esac
+
+

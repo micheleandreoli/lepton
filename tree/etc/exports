@@ -1,0 +1,6 @@
+#/etc/exports: automatically generated. Don't edit.
+# by M.Andreoli
+
+/home/craxi      www.sanvittore.it(rw,no_root_squash)
+/home/hozumi     192.168.1.1(rw,root_squash)
+/home/michele    256.1.1.4(ro,all_squash)

@@ -1,0 +1,18 @@
+# /etc/fstab for muLinux ext2
+
+# CDROM
+/dev/cdrom        /cdrom     iso9660        user,noauto,ro   1   1
+# DOS floppy
+/dev/fd0        /a     auto        defaults,noauto,rw   1   1
+# Disk C: 
+/dev/hda1        /c     auto        defaults,noauto   1   1
+# ROOT
+/dev/root       /       ext2 defaults
+# /proc
+none            /proc           proc    defaults 0 0
+# SWAP
+/dev/swap       swap    swap    default 1 1
+
+
+# on the fly
+

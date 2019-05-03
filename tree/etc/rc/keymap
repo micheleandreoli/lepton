@@ -1,0 +1,21 @@
+#!/bin/sh
+# gpm mouse server 
+
+. /etc/color
+. /etc/build
+. /etc/conf
+
+
+start()
+{
+loadkeys ${KEYMAP:-it}
+}
+
+stop()
+{
+}
+
+# Main
+
+op=${1:-start}
+eval $op

@@ -1,0 +1,200 @@
+#!/bin/sh
+# Info, by M. Andreoli
+# -- /proc based system info
+#set -x
+
+ME=$0
+MENU="[p] print the page, [q] back"
+
+F=-12
+TAB=10
+FMT="%${TAB}s %${F}s %${F}s %${F}s %${F}s %${F}s"
+
+refresh()
+{
+TITLE="$1"
+MSG="$2"
+
+cat > /tmp/info.cnt <<END 
+:T: $TITLE 
+:S: $MSG
+
+ _        __
+(_)_ __  / _| ___    _
+| | '_ \| |_ / _ \  (_)
+| | | | |  _| (_) |  _		/proc based
+|_|_| |_|_|  \___/  (_)		system info
+
+END
+
+(
+printf "%10s %s" Boot: log
+echo
+
+printf "%10s" Processor:
+echo
+printf "$FMT" " " version cpuinfo "ioports" dma devices 
+echo
+printf "$FMT" " " interrupts pci "stat" "" "" ""
+echo
+
+printf "%10s" System:
+echo
+printf "$FMT" " " processes meminfo loadavg "uptime" scsi  
+echo
+printf "$FMT" " " disks modules  sound "inittab" "" 
+echo
+printf "$FMT" " " commands "date" "" "" ""
+echo
+
+printf "%10s" FileSystem:
+echo
+printf "$FMT" " " supported mounted " " " "  " "
+echo
+
+printf "%10s" Network:
+echo
+printf "$FMT" " " interfaces routing filtering \
+	 hostname hosts 
+echo
+printf "$FMT" " " nameserver services "SMB-shares" "netstat" ""
+echo
+
+) >> /tmp/info.cnt
+
+
+
+kill -10 $pid 2>/dev/null 
+}
+
+show()
+{
+what=$1
+case "$what" in
+log)	dmesg > /tmp/info.p 
+	;;
+devices|version|stat|cpuinfo|ioports|dma|interrupts|meminfo|loadavg|uptime)
+	cat /proc/$what > /tmp/info.p 
+	;;
+pci)
+	cat /proc/pci | grep "\(rev"  > /tmp/info.p	
+	;;
+scsi)
+	(
+	cd /proc/scsi ; ls -R; echo 
+	cat scsi ) > /tmp/info.p
+	;;
+disks)
+	fdisk -l 2>/dev/null > /tmp/info.p
+	;;
+processes)
+	ps > /tmp/info.p
+	;;
+sound)
+	cat /dev/sndstat > /tmp/info.p
+	;;
+inittab)
+	cat /etc/inittab > /tmp/info.p
+	;;
+pciprobe)
+        pciprobe > /tmp/info.p
+        ;;
+modules)
+	lsmod > /tmp/info.p
+	;;
+supported)
+	cat /proc/filesystems > /tmp/info.p
+	;;
+interfac*)
+	ifconfig > /tmp/info.p
+	;;
+routing*)
+	route -n > /tmp/info.p
+	;;
+mounted)
+	(
+	echo "Type:"; echo
+	mount ; echo ; 
+	echo "Size:"; echo
+	df ) > /tmp/info.p
+	;;
+commands)
+        (
+	/bin/ls -R /bin /usr/bin
+        ) > /tmp/info.p
+        ;;
+date)
+        (echo "Current time and date:"; date) > /tmp/info.p
+        ;;
+filtering)
+        (
+       	echo 
+	ipfwadm -l -I 
+	echo
+	ipfwadm -l -O 
+	echo 
+	ipfwadm -l -F 
+	echo 
+	ipfwadm -l -A 
+        ) > /tmp/info.p
+	;;
+hostname)
+	(echo
+	hostname
+	) > /tmp/info.p
+	;;
+hosts)
+        cat /etc/hosts > /tmp/info.p
+        ;;
+nameserver)
+        cat /etc/resolv.conf > /tmp/info.p
+        ;;
+services)
+        cat /etc/services > /tmp/info.p
+        ;;
+SMB-shares)
+        smbclient -L localhost -N > /tmp/info.p
+        ;;
+netstat)
+	netstat -t > /tmp/info.p	
+	;;
+esac
+
+muless -e $ME -t "Info: $what" -b "$MENU" /tmp/info.p
+
+}
+
+
+
+pid=$2
+set -- $1
+key=$1
+link=$3
+
+# first run
+
+if [ -z "$key" ] ; then
+refresh "\
+                                System Info\
+"
+muless -e $ME -b "\
+[q]uit                                 (C)1999 Rustic Software Foundation, Inc.\
+" -x /tmp/info.cnt
+exit
+fi
+
+
+case $key in
+q)
+	rm -f /tmp/info.cnt /tmp/info.p
+	;;
+)
+	show $link
+	;;	
+p) #print
+	lpr /tmp/info.p
+	sleep 2
+	;;	
+esac
+
+

@@ -1,0 +1,40 @@
+#! /bin/sh
+##############################
+# diskcopy: duplicate floppy disk 
+#
+# by M. Andreoli (2002) 
+##############################
+
+#set -x
+
+SIZE=$1
+FLOPPY=/dev/fd0H${SIZE}
+
+if [ -z "$SIZE" ] ; then
+	echo "Usage: diskcopy 1722 or 1440"
+	exit
+fi
+
+echo "(Rustic) Diskcopy (floppy disk copy), (C) M.Andreoli"
+read -p "Put the SOURCE floppy disk in the drive and press ENTER: " enter
+echo -n "Copying ... "
+fastdd $FLOPPY 0 > /tmp/floppy
+
+read -p "Put the DESTINATION floppy disk in the drive and press ENTER: " enter
+read -p "Should I format it (y/[n])? " format
+[ -z "$format" ] && format=n
+
+case $format in
+y|Y|s|S)
+	fdformat $FLOPPY
+	;;
+esac 
+
+echo -n "Ok, Copying $(SIZE) Kbytes... "
+dd if=/tmp/floppy of=$FLOPPY
+sync
+rm /tmp/floppy
+echo "The End."
+
+# End 
+

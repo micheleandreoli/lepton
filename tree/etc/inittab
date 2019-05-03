@@ -1,0 +1,27 @@
+id:3:initdefault:
+r:S:sysinit:/etc/rc/sysinit
+r1:1:wait:/etc/rc/maint
+r2:2:wait:/etc/rc/run 2
+r3:3:wait:/etc/rc/run 3 
+r4:4:wait:/etc/rc/run 4 
+r5:5:wait:/etc/rc/run 5
+ca:12345:ctrlaltdel:/etc/rc/reboot
+r0:0:wait:/etc/rc/halt
+r6:6:wait:/etc/rc/reboot
+c1:123:respawn:/bin/agetty 38400 tty1
+c2:234:respawn:/bin/agetty 38400 tty2
+c3:234:respawn:/bin/agetty 38400 tty3
+c4:234:respawn:/bin/agetty 38400 tty4
+c5:234:respawn:/bin/agetty 38400 tty5
+c6:234:respawn:/bin/agetty 38400 tty6
+#c7:45:respawn:/bin/agetty 38400 tty7
+#c8:45:respawn:/bin/agetty 38400 tty8
+
+#-----------------------
+# servers & daemons
+#-----------------------
+
+# rustic framebuffer screen-saver
+ss:34:once:/usr/bin/screen_saver
+a4:4:respawn:/usr/bin/adm
+

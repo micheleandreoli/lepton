@@ -1,0 +1,4 @@
+auth       required     pam_unix.so nullok
+account    required     pam_unix.so nullok
+session    required     pam_unix.so nullok
+password   required     pam_unix.so nullok  

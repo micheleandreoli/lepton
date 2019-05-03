@@ -1,0 +1,34 @@
+#!/bin/sh
+# /etc/rc/modules: load some basic module (if present) 
+# load any modules listed in /etc/modules 
+
+. /etc/color
+. /etc/build
+. /etc/conf
+
+
+LIST="fat msdos vfat ntfs isofs $(cat /etc/modules 2>/dev/null)"
+
+
+start()
+{
+for m in $LIST; do
+modprobe $m >/dev/null 2>/dev/null && msg "Loading driver $m ..."
+wave -c 10 5	# timings 
+done
+}
+
+stop()
+{
+}
+
+restart()
+{
+stop; start
+}
+
+# Main
+
+eval ${1:-start}
+
+# End

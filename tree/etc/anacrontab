@@ -1,0 +1,16 @@
+# /etc/anacrontab: configuration file for anacron
+
+# See anacron(8) and anacrontab(5) for details.
+
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# These entries are useful for a Debian system.
+# Note that you should remove the corresponding lines from
+# /etc/crontab before activating these lines.
+
+1	10	cron.hourly	run-parts /etc/cron.hourly
+1	10	cron.daily	run-parts /etc/cron.daily
+7	2	cron.weekly	run-parts /etc/cron.weekly
+30	180	cron.monthly	run-parts /etc/cron.monthly
+

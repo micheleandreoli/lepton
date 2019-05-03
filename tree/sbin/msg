@@ -1,0 +1,21 @@
+#/bin/sh
+# Video Console Monitor 
+# [a 'poke' command demo] 
+
+#set -x
+
+VCS=/dev/vcs1
+
+POS=0
+if [ $# -eq 0 ] ; then
+	echo "Syntax: vcm 'message'"
+	exit
+fi
+
+poke -c $VCS $POS '                                                                  ' > /dev/null
+poke -c $VCS  $POS "$@" > /dev/null
+
+echo "$@"
+
+#wave -c 10 10 
+# End

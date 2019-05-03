@@ -1,0 +1,28 @@
+
+# AUTOMAGICALLY GENERATED. 
+# DO NOT EDIT! DO NOT EDIT!
+# check /etc/m4/fcrontab, instead
+
+# ogni minuto
+#* * * * * wave -c 440 1
+# ogni minuto, a partire da 5 min dopo il boot
+#@first(5) 1 wave -c 220 1
+
+# Periodic scheduler
+
+%hourly *  run-parts /etc/cron.hourly
+%daily * * run-parts /etc/cron.daily
+%weekly * * run-parts /etc/cron.weekly
+%monthly * * * run-parts /etc/cron.monthly
+
+# altre prove
+2 * * * * ping -c 2 -i 1 urmet 
+
+ 
+#%daily * * ns 
+
+# Connessione periodica al Server
+
+%nightly 2-59 20-23,6-8  /usr/sbin/pppd call provider
+
+ 

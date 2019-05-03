@@ -1,0 +1,211 @@
+#!/bin/sh
+
+#set -x
+
+case $0 in
+ping|*/ping)
+	[ -z "$1" ] && echo "Rustic ping -- Usage: ping host" && exit
+	nc -v -z -w 2 $1 7
+	exit $?
+	;;
+mv|*/mv)
+
+case "$1Z" in
+-hZ|Z)
+	echo "rustic mv: mv file file|dir"
+	exit
+	;;
+-*)
+	shift
+	;;
+esac
+
+if [ -f "$1" ] ; then
+	cp $1 $2
+	rm -r $1
+else
+	echo "$1 is not a file. Use cp & rm."
+fi	
+
+;;
+domainname|*/domainname)
+	kern=/proc/sys/kernel/domainname
+	if [ $1 ] ; then
+		echo $1 > $kern
+	else
+		cat $kern
+	fi 
+;;
+hostname|*/hostname)
+# mu-hostname by A.Manzini <linux@netbusiness.it> 
+
+H=/proc/sys/kernel/hostname
+case "Z$1Z" in
+Z-hZ|Z--helpZ) cat << END
+  hostname - show or set the system's host name
+  usage: hostname [-h] [host.domain]
+END
+exit ;;
+ZZ) cat $H ;;
+*) echo "$1" > $H ;;
+esac
+
+;;
+dirname|*/dirname)
+
+    split=`echo  $1 | tr '/' ' '` 
+    if [ "$split" = "$1" ];then 
+        echo ".";
+        exit 
+    fi 
+
+case $1 in
+/*)  	echo -n "/"
+	;;
+esac
+
+	set -- $split 
+
+	[ $# = 1 ] &&  exit 
+
+	while [ $# -gt 2 ]
+	do
+	echo -n "$1/"
+	shift 
+	done
+
+	echo "$1"
+	;;
+free|*/free)
+	cat /proc/meminfo
+	;;
+killall5|*/killall5) # ignore
+        set -x        
+	SIGNAL=$1
+
+	mount | fgrep -v "/proc"| fgrep -v " /usr "|fgrep -v " / "| \
+        while read line; do
+    	set -- $line
+	fuser -k  -m $1
+	done
+        fuser -k -m /usr
+        fuser -k -m /
+
+
+        ps
+	;;
+pidof|*/pidof)
+	list=
+	name=$1
+	for i in /proc/[0-9]*/; do
+		if [ -r $i/stat ] ; then
+                read stat < $i/stat 
+		else
+		stat=
+		fi
+                set -- `echo $stat | tr -d '(' | tr -d ')'`
+                if [ "$2" = "$name" ] ; then
+                	list="$list $1"
+		fi
+	done
+	echo $list
+	;;
+ps|*/ps)
+	for i in /proc/[0-9]*/; do
+		[ ! -d $i ] && continue
+		read stat < $i/stat
+		cmd=`cat $i/cmdline| tr '\0' ' '`
+		set -- $stat
+		echo -e "$1\t$2 $cmd"
+	done
+	;;
+uname|*/uname)
+		opt=$1
+		set -- `cat /proc/version 2>/dev/null`
+		case $opt in
+		-a)
+			echo "$@"	
+			;;
+		-r|--release)
+			echo $3
+			;;
+		-s|--sysname)
+			echo $1 
+			;;
+                *)      echo muLinux
+                        ;;
+		esac
+	;;
+        basename|*/basename)
+                ext=$2
+                case "$1" in
+                        */*)    IFS="/"
+                                set -- $1
+                                eval name="\$$#" ;;
+                        *)      name="$1" ;;
+                esac
+
+                if [ "$ext" ] ; then
+                        echo $name | sed "s/$ext\$//"
+                else
+                        echo $name
+                fi
+
+	;;
+mformat|*/mformat)
+	;;
+grep|*/grep)
+	R="$1"
+	case $1 in
+	-h)
+		echo "Usage: grep [-v] <regexpr> <files ...>"
+		;;
+	-v)	
+		R="$2"; shift 2
+		sed -n "/$R/!P"  "$@"
+		;;
+	*)
+		R="$1" ; shift
+		sed -n "/$R/P" "$@"
+		;;
+	esac
+	;;
+lsmod|*/lsmod)
+	echo "Module         Pages    Used by"
+	cat /proc/modules
+	;;
+zless|*/zless)
+	gzip -dc $@ | less
+	;;
+
+killall|*/killall)
+	case Z$1Z in
+	ZZ)
+		cat << END
+usage: killall [ -signal ] name ...
+       killall -l
+       killall -V
+
+END
+		;;
+	Z-VZ)
+		echo "Rustic killall"
+		;;
+	Z-lZ)
+		kill -l
+		;;
+	Z-*)	
+		SIGNAL=$1
+		shift
+		kill $SIGNAL `/bin/pidof $@`
+		;;
+	Z*) 
+		kill `/bin/pidof $@`
+		;;
+	esac
+	;;
+*)
+	echo "no function defined for $0"
+	exit 1
+esac
+exit 0

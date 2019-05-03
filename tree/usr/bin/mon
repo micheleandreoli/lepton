@@ -1,0 +1,111 @@
+#!/bin/sh
+
+#set -x
+
+mega()
+{
+k=`expr $1 / 1024`
+expr $k / 1024
+}
+
+up_time()
+# function up_time - gives uptime in more practical
+# format (day,hours,..etc) rather than only in seconds
+# Adam Gapinski 18.03.2001
+
+{
+# totally $d - days $m - minutes & $1 - seconds
+m=`expr $1 / 60`
+h=`expr $m / 60`
+d=`expr $h / 24`
+# remains
+h=`expr $h % 24`
+m=`expr $m % 60`
+s=`expr $1 % 60`
+echo "$d day(s), $h hour(s), $m minute(s), $s second(s)"
+}
+
+refresh()
+{
+
+cat <<END 
+:T:                 System Monitor (very resource expensive!) 
+:B: `date`  -- 'q' to stop 
+END
+
+lab=20
+fmt="%${lab}s  %s"
+
+# collect data
+
+#- system
+set -- `cat /proc/meminfo`
+shift 7
+tot=$1; fr=$3
+set -- `cat /proc/meminfo | grep SwapTotal`
+swap="$2 $3"
+
+
+echo "- System"
+echo
+printf "$fmt" "MEM TOT:" "$(mega $tot)M"	
+echo
+printf "$fmt" "MEM FREE:" "$(mega $fr)M"	
+echo
+printf "$fmt" SWAP: "$swap"	
+echo
+printf "$fmt" CPU: `cat /proc/stat|grep cpu| sed s/cpu//`
+echo
+printf "$fmt" LOADAVG: "`cat /proc/loadavg`"
+echo
+set -- `cat /proc/uptime`
+# next line changed due to new function up_time by A.Gapinski
+# printf "$fmt" UPTIME: "$1 seconds"
+printf "$fmt" UPTIME: "$(up_time $1)"
+echo
+
+set -- `cat /proc/stat| grep processes`
+printf "$fmt" "PROCESSES #:" $2 
+echo
+set -- `cat /proc/stat | grep intr`
+shift 2
+printf "$fmt" "INTERRUPTS (0->15):" "$*" 
+echo
+echo
+echo "- Network"
+echo
+
+set -- `cat /proc/net/dev |  sed /dummy:/p | sed /:/p` 
+
+while [ $# -gt 0 ]; do
+printf "%${lab}s  Tx: %4s Rx: %4s" $1 $2 $7
+echo
+shift 12
+done
+
+return
+echo
+echo "- IP accounting "
+echo
+
+set -- `cat /proc/net/ip_acct`
+shift 3
+while [ $# -gt 0 ]; do
+shift 7; count=$1; port=$2
+printf "%${lab}s  %s:%5s " port $port $count
+echo
+shift 13
+done
+
+}
+
+pid=$2
+set -- $1
+
+refresh > /tmp/cnt
+
+if [ -z "$1" ] ; then
+exec muless -r 1 -e $0 /tmp/cnt
+fi
+
+

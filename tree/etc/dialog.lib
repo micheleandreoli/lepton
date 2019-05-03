@@ -1,0 +1,273 @@
+#-----------------------
+# dialog library v0.3
+# (C) M. Andreoli 2000
+#-----------------------
+
+#set -x
+
+#-------HOW to USE-------------------------------
+# The environment variable BACK_TITLE= is recognized
+#
+# Functions:
+#	dyesno "message"
+#	dmessage "message"  ( with -EXIT- button)
+#	dinfo	"message"   (transient)
+#	dbrowser "filename"   (browse a file)
+#	dinput "default"	(text input) 
+#	dmenu "item strings $CA item strings ..."
+#	(CA is \01 or control-A)
+#
+#	 dchecklist and dradiolist gets a string like
+#	"+|- item strings $CA +|- item strings ...."
+# Quote:
+#	dmessage $(cat filename | quote )
+# Options:
+#	-t title  (no blanks, use _)
+#	-r row -c col
+#	-m menu (only dmenu, dchecklist and dradiolist)
+#----------------------------------------------
+
+# global variables
+
+RC=/tmp/dia.rc
+TMP=/tmp/dia.tmp
+CA=""  	# please, use record separator
+
+#----------------
+# special
+#-----------------
+
+opt()
+{
+if [ "$BACK_TITLE" ] ; then
+	echo "--backtitle \"$BACK_TITLE\""
+fi
+}
+
+# rc=$1
+parse_output()
+{
+local ret=$1
+
+choice=`cat $TMP 2>/dev/null`;
+rm -f $TMP
+
+if [  -z "$choice"  ] ; then
+	choice="-yes-"
+fi
+
+(
+case $ret in
+  0)
+    echo $choice;;
+  1)
+    echo "-no-";;
+  255)
+    echo "-ESC-";;
+esac
+) > $RC
+}
+
+# count the number of \01; read from stdin
+
+count()
+{
+tr -d '\012' |tr '\001' '\012' | wc -l 
+}
+
+
+# file size in bytes
+size()
+{
+local filename=$1
+set -- `/bin/ls -l $filename`
+echo $5
+}
+
+# add a single $CA to end line
+
+quote()
+{
+tmp=/tmp/q$$
+tr '\012' '\01' > $tmp 
+s=`size $tmp`
+# chop the last \01
+dd if=$tmp bs=1c count=`expr $s - 1` 2>/dev/null 
+rm $tmp
+}
+
+# translate $CA in "\n" (two byte)
+#  (dialog requirement for multi-line
+
+unquote()
+{
+sed "s/%/#perc#/g"  |\
+tr $CA '%'|\
+sed 's/%/\\n/g' |\
+sed "s/#perc#/%/g"
+}
+
+quote_menu()
+{
+tr $CA	'\012' | 
+while read first rest
+do
+[ "$first" ] && echo "\"$first\" \"$rest\"" | tr '\012' ' '
+done 
+}
+
+quote_radiolist()
+{
+tr $CA  '\012' |
+while read status first rest
+do
+STATUS="off"; [ "$status" = + ] && STATUS="on"
+echo "\"$first\" \"$rest\"" $STATUS | tr '\012' ' '
+done
+}
+
+quote_checklist()
+{
+quote_radiolist
+}
+
+# return output to caller
+
+result()
+{
+cat $RC | tr -d '\012'
+}
+
+# get -t title, etc
+
+parse_opt()
+{
+TITLE=
+ROW=; COL=; MENU=
+DIM="0 0"
+
+while [ $# -ne 0 ] ; do
+case Z$1 in
+Z-t)
+	shift
+	TITLE=$(echo $1 | tr _ ' ') ; shift
+	;;
+Z-r)
+	shift;  ROW=$1; shift
+	;;	
+Z-c)
+	shift;  COL=$1; shift
+	;;	
+Z-m)
+	shift;  MENU=$1; shift
+	;;	
+*)
+	VAL="$@" ; break 
+	;;	
+esac 
+done 
+
+DIM="${ROW:-0} ${COL:-0}"
+MENU=${MENU:-0}
+
+}
+
+
+#----------------
+# yesno "string" 
+#-----------------
+
+dyesno()
+{
+parse_opt $@
+eval dialog  `opt`  --title \"${TITLE:-Question}\" --yesno \"$VAL\"  $DIM 
+parse_output $?
+}
+
+
+dmessage()
+{
+local m
+parse_opt $@
+m=$(echo "$VAL" | unquote)
+eval dialog `opt` --title \"${TITLE:-Message}\" --msgbox \"$m\" $DIM 
+parse_output $?
+}
+
+dinfo()
+{
+local m
+parse_opt $@
+m=$(echo "$VAL" | unquote)
+eval dialog `opt` --title \"${TITLE:-Info}\" --infobox \"$m\" $DIM 
+parse_output $?
+}
+ 
+dbrowse()
+{
+parse_opt $@
+eval dialog `opt` --title \"${TITLE:-'File Content'}\" --textbox "$VAL" $DIM 
+parse_output $?
+}
+
+dinput()
+{
+parse_opt $@
+eval dialog `opt` --title \"Input Box\" --inputbox \"${TITLE}\" \
+$DIM  \"$VAL\" 2>$TMP
+parse_output $?
+}
+
+# $1=type
+# BASE for menus
+
+base()
+{
+local type=$1
+local items 
+shift
+parse_opt $@
+
+items=$(echo $VAL | eval quote_$type)
+title="$(echo $TITLE | unquote)"
+
+eval dialog  `opt` \
+--$type  \"$title\" \
+$DIM $MENU \
+$items 2> $TMP
+parse_output $?
+}
+
+
+#---------------------------
+# menu
+#---------------------------
+
+# usage
+#menu "item1 string \01 item2 string \01 ..."
+
+dmenu()
+{
+base menu $@
+}
+
+#----------------------------
+# radiolist
+#----------------------------
+
+# entry  "+|- item strings"
+dradiolist()
+{
+base radiolist $@
+}
+
+#----------------------------
+# checklist
+#----------------------------
+
+# entry  "+|- item strings"
+dchecklist()
+{
+base checklist $@
+}
+

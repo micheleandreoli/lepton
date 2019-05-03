@@ -1,0 +1,41 @@
+# middle
+
+la=440
+sib=466
+si=494
+do=523
+dod=554
+re=587
+mib=622
+mi=658
+fa=698
+fad=740
+sol=784
+sold=831
+
+# low
+
+La=`expr $la / 2`
+Sib=`expr $sib / 2`
+Do=`expr  $do / 2`
+Dod=`expr $dod / 2`
+Re=`expr $re / 2`
+Mib=`expr $mib / 2`
+Fa=`expr $fa / 2`
+Fad=`expr $fad / 2`
+Sol=`expr $sol / 2`
+Sold=`expr $sold / 2`
+
+
+#high
+
+LA=`expr 2 \* $la`
+SIb=`expr 2 \* $sib`
+DO=`expr 2 \* $do`
+DOd=`expr 2 \* $dod`
+RE=`expr 2 \* $re`
+MIb=`expr 2 \* $mib`
+FA=`expr 2 \* $fa`
+FAd=`expr 2 \* $fad`
+SOL=`expr 2 \* $sol`
+SOLd=`expr 2 \* $sold`

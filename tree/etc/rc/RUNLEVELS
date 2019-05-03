@@ -1,0 +1,7 @@
+1	maintenance, no getty, no login
+2	getty and login; no setup
+3	standard linux console 
+4	newbie level, with /bin/adm on the console #1
+
+
+This is the run=... boot parameter. You can select run=/path/to/command

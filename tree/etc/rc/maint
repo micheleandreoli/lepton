@@ -1,0 +1,29 @@
+#!/bin/sh
+# /etc/rc/maint
+# call with LILO as init=/etc/rc/maint
+
+# emergency divertion
+
+. /etc/build
+. /etc/color
+. /etc/path.conf
+
+clear
+cat <<END
+
+   -----------------------------------------------------------
+   $SYSTEM_NAME Maintenance Mode.
+   "loadkeys it|us|uk ..." for keymaps, "help" for help.
+   Please, remember: you are root, the superuser.
+   Typing 'exit', the system will reboot.
+   -----------------------------------------------------------
+
+END
+
+echo -e "${BRIGHT} System Ready${NORMAL}, but (relatively) refractory."
+echo
+/bin/-ash -si
+
+echo -e "$BRIGHT Rebooting ... $NORMAL"
+sleep 1
+exec /sbin/init 6

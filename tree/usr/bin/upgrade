@@ -1,0 +1,30 @@
+#!/bin/sh
+# patch the base floppy disk
+# using a second 1.4M floppy
+# (for my students)
+# (C) M.Andreoli
+
+. /etc/shell.lib
+
+TMP=/tmp/patch$$
+mkdir -p $TMP
+
+clear
+read -p "Phase 1: Put the patch-floppy on the drive and press ENTER " enter
+mount /dev/fd0 /a && echo "Floppy mounted: OK"
+[ -x /a/init.sh ] || abort "No PATCH found on this floppy-disk"
+
+echo "Copying the PATCH ... please, wait"
+cp -a /a/* $TMP
+umount /a
+echo "Done."
+
+
+echo "Phase 2: Applying the PATCH ... please, wait"
+cd $TMP
+echo "Running init.sh ..."
+	init.sh
+cd / 
+rm -r $TMP
+
+

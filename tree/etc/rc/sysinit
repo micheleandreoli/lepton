@@ -1,0 +1,58 @@
+#!/bin/sh
+# gpm mouse server 
+
+. /etc/color
+. /etc/build
+. /etc/conf
+. /etc/path.conf
+. /etc/shell.lib
+
+mount -o remount,rw /dev/root / 2>/dev/null
+mount -t proc /proc /proc
+
+save=$IFS; IFS=':'
+set -- `cat /proc/cpuinfo | grep 'model name'`
+model=$2
+IFS=$save
+
+clear
+echo -e $BRIGHT$CYAN | tr -d '\012'
+echo $SYSTEM_NAME, Linux v${VERSION}pl${BUILD}, K`uname -r`, \
+$model - \(C\)2002 M. Andreoli
+echo -e $NORMAL
+
+# create /etc/issue
+
+(echo
+echo -e " ${BRIGHT}${REVERSE}${GREEN} \
+${SYSTEM_NAME} v\
+${VERSION}${NORMAL} \\l \
+"$REVERSE$GREEN $WHITE $RED $NORMAL""
+echo -e $NORMAL) > /etc/issue
+
+
+sleep 1
+#clear
+
+# default hostname
+
+hostname mulinux
+
+# handle the "run=" kernel switch
+
+SplitArgs `cat /proc/cmdline`
+
+case $run in
+1|2|3|4|5)
+	echo "Executing [$run], at LILO request."
+	sleep 2
+	exec /sbin/init $run;
+	;;
+/*)
+	eval $run
+	/sbin/init 0
+	;;
+esac
+
+
+# End
