@@ -20,7 +20,7 @@ or with
 ```
 Using vnc.sh, You will enter the system with 
 ```
-vncviewer localhost:3
+# vncviewer localhost:3
 ```
 The *go* script rebuild the root filesystem), starting from *tree/*
   
