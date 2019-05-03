@@ -5,7 +5,7 @@ QEMU LEPTON
 
 framebuffer mulinux spin-off, running under QEMU virtual machine, with VNC enabled.
 
-How to try
+How to run
 ----------
 
 Tested with KVM under Ubuntu 18.10.
