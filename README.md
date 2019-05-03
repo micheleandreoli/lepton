@@ -1,6 +1,6 @@
 QEMU LEPTON
 =================
 
-> (C) 2002 Michele Andreoli
+(C) 2002 Michele Andreoli
 
-qemu framebuffer mulinux spin-off
+framebuffer mulinux spin-off, running under QEMU virtual machine, with VNC enabled
