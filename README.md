@@ -12,5 +12,5 @@ Tested with KVM under Ubuntu 18.10.
 
 1. install kvm
 2. run
-   -  go 9this will rebuild the root filesystem)
+   -  go this will rebuild the root filesystem)
    -  vnc.sh or boot.sh
