@@ -14,7 +14,7 @@ After installed KVM (i.e qemu-system-x86_64), You can start the machine with
 ```
 # boot.sh
 ```
-or the with 
+or with 
 ```
 # vnc.sh
 ```
