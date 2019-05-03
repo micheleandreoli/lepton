@@ -12,5 +12,8 @@ Tested with KVM under Ubuntu 18.10.
 
 1. install kvm (i.e qemu-system-x86_64)
 2. run
-   -  go this will rebuild the root filesystem)
-   -  vnc.sh or boot.sh
+   -  *go* this will rebuild the root filesystem)
+   -  *vnc.sh*  
+   -  or *boot.sh*
+   
+In the first case, You will enter the system with *vncviewer localhost:3*
