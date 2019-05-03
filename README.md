@@ -10,6 +10,7 @@ How to try
 
 Tested with KVM under Ubuntu 18.10.
 
-- install kvm
-- # go
-- # vnc.sh or boot.sh
+1. install kvm
+2. run
+   - # go
+   - # vnc.sh or boot.sh
