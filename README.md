@@ -10,7 +10,7 @@ How to try
 
 Tested with KVM under Ubuntu 18.10.
 
-1. install kvm
+1. install kvm (i.e qemu-system-x86_64)
 2. run
    -  go this will rebuild the root filesystem)
    -  vnc.sh or boot.sh
