@@ -7,6 +7,7 @@ framebuffer mulinux spin-off, running under QEMU virtual machine, with VNC enabl
 
 How to try
 ----------
+
 Tested with KVM under Ubuntu 18.10.
 
 - install kvm
